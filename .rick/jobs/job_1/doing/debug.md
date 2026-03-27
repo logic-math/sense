@@ -111,3 +111,31 @@
   {"pass": true, "errors": []}
   ```
 - 结论：✅ 通过
+
+## task5: 实现 sense doing update_task 和 learning merge 命令
+
+**分析过程 (Analysis)**:
+- 已有 internal/executor/tasks_json.go 提供 Load/Save/UpdateStatus/UpdateCommit，但 Save 非原子写入
+- 已有 internal/cmd/doing.go 提供 dag/next_task 子命令，在此基础上扩展 update_task/list
+- 已有 internal/workspace/workspace.go 提供 GetJobLearningDir/GetSenseDir/ListJobIDs
+- 需要新建 internal/cmd/learning.go（learning merge）和 internal/cmd/job.go（job list）
+- 测试脚本验证：update_task 更新状态+commit_hash、幂等性、learning merge 文件复制、doing list 表格输出、不存在 task_id 返回非零
+
+**实现步骤 (Implementation)**:
+1. 修改 tasks_json.go Save() 为原子写入（先写 .tmp 再 rename）
+2. 在 tasks_json.go 中添加 UpdateAttempts() 方法
+3. 在 doing.go 中添加 doingUpdateTaskCmd（支持 --commit/--attempts flag）和 doingListCmd（表格输出）
+4. 新建 internal/cmd/learning.go：learning 父命令 + merge 子命令（合并 wiki/skills 目录，支持 OKR.md/SPEC.md）
+5. 新建 internal/cmd/job.go：job 父命令 + list 子命令（读各 job 的 tasks.json 推断状态）
+6. `go build -o bin/sense ./cmd/sense/...` 编译成功
+
+**遇到的问题 (Issues)**:
+- 无
+
+**验证结果 (Verification)**:
+- 测试命令：`python3 .rick/jobs/job_1/doing/tests/task5.py`
+- 测试输出：
+  ```
+  {"pass": true, "errors": []}
+  ```
+- 结论：✅ 通过

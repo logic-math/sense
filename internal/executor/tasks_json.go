@@ -55,7 +55,7 @@ func Load(doingDir string) (*TasksJSON, error) {
 	return &tj, nil
 }
 
-// Save writes tasks.json to the given doing directory.
+// Save writes tasks.json to the given doing directory atomically.
 func Save(doingDir string, tj *TasksJSON) error {
 	tj.UpdatedAt = time.Now()
 	path := filepath.Join(doingDir, "tasks.json")
@@ -63,8 +63,12 @@ func Save(doingDir string, tj *TasksJSON) error {
 	if err != nil {
 		return fmt.Errorf("marshal tasks.json: %w", err)
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("write tasks.json: %w", err)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return fmt.Errorf("write tasks.json tmp: %w", err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return fmt.Errorf("rename tasks.json: %w", err)
 	}
 	return nil
 }
@@ -109,6 +113,19 @@ func (tj *TasksJSON) UpdateStatus(taskID string, status TaskStatus) error {
 	for i := range tj.Tasks {
 		if tj.Tasks[i].TaskID == taskID {
 			tj.Tasks[i].Status = status
+			tj.Tasks[i].UpdatedAt = time.Now()
+			tj.UpdatedAt = time.Now()
+			return nil
+		}
+	}
+	return fmt.Errorf("task %q not found", taskID)
+}
+
+// UpdateAttempts sets the attempts count of a task.
+func (tj *TasksJSON) UpdateAttempts(taskID string, attempts int) error {
+	for i := range tj.Tasks {
+		if tj.Tasks[i].TaskID == taskID {
+			tj.Tasks[i].Attempts = attempts
 			tj.Tasks[i].UpdatedAt = time.Now()
 			tj.UpdatedAt = time.Now()
 			return nil
