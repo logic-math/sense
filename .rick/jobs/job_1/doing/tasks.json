@@ -86,7 +86,8 @@
     {
       "task_id": "task7",
       "task_name": "编写 mock_agent.py 和集成测试（自举验证 sense CLI）",
-      "status": "running",
+      "task_file": "task7.md",
+      "status": "success",
       "dependencies": [
         "task1",
         "task2",
@@ -95,8 +96,9 @@
         "task5"
       ],
       "attempts": 0,
+      "commit_hash": "679197a2e8714b4613fcdc06d737aa50bc2fb574",
       "created_at": "2026-03-28T00:18:07.63432+08:00",
-      "updated_at": "2026-03-28T00:50:01.6772+08:00"
+      "updated_at": "2026-03-28T01:05:00+08:00"
     }
   ]
 }
