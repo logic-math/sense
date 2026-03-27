@@ -83,3 +83,31 @@
   {"pass": true, "errors": []}
   ```
 - 结论：✅ 通过
+
+## task4: 实现 tools check 命令（plan_check / doing_check / learning_check）
+
+**分析过程 (Analysis)**:
+- 已有 internal/cmd/tools.go 提供 gen_prompt 子命令，在此基础上扩展三个 check 子命令
+- 已有 internal/executor/dag.go 提供 BuildDAG() 可复用做循环检测
+- 已有 internal/executor/tasks_json.go 提供 Load() 和 StatusRunning 常量
+- 已有 internal/workspace/workspace.go 提供 GetJobPlanDir/DoingDir/LearningDir
+- 测试脚本验证：plan_check PASS/FAIL、doing_check zombie task 检测、learning_check Python 语法检查、--json flag
+
+**实现步骤 (Implementation)**:
+1. 在 tools.go 添加 checkResult 结构体（Pass bool + Errors []string），实现 output(jsonMode) 和 exitCode()
+2. 实现 planCheckCmd：扫描 plan/*.md，检查五个必要 section，用 BuildDAG 检测循环依赖
+3. 实现 doingCheckCmd：Load tasks.json，检测 status=running 的 zombie task
+4. 实现 learningCheckCmd：验证 README.md 存在，对 skills/*.py 运行 python3 -m py_compile 检查语法
+5. 为三个命令注册 --json flag，在 init() 中添加到 toolsCmd
+6. `go build -o bin/sense ./cmd/sense/...` 编译成功
+
+**遇到的问题 (Issues)**:
+- 无
+
+**验证结果 (Verification)**:
+- 测试命令：`python3 .rick/jobs/job_1/doing/tests/task4.py`
+- 测试输出：
+  ```
+  {"pass": true, "errors": []}
+  ```
+- 结论：✅ 通过
