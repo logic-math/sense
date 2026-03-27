@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "created_at": "2026-03-28T00:18:07.63432+08:00",
+  "updated_at": "2026-03-28T00:18:07.634833+08:00",
+  "tasks": [
+    {
+      "task_id": "task1",
+      "task_name": "初始化 sense 项目结构（Go module + workspace 模块）",
+      "status": "running",
+      "dependencies": null,
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.634833+08:00"
+    },
+    {
+      "task_id": "task2",
+      "task_name": "实现 DAG 调度核心（dag + topological + tasks_json）",
+      "status": "pending",
+      "dependencies": [
+        "task1"
+      ],
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.63432+08:00"
+    },
+    {
+      "task_id": "task3",
+      "task_name": "实现 prompt 模板系统（plan/doing/learning/review/test prompt 生成）",
+      "status": "pending",
+      "dependencies": [
+        "task1"
+      ],
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.63432+08:00"
+    },
+    {
+      "task_id": "task4",
+      "task_name": "实现 tools check 命令（plan_check / doing_check / learning_check）",
+      "status": "pending",
+      "dependencies": [
+        "task2",
+        "task3"
+      ],
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.63432+08:00"
+    },
+    {
+      "task_id": "task5",
+      "task_name": "实现 sense doing update_task 和 learning merge 命令（任务状态管理 + learning 合并）",
+      "status": "pending",
+      "dependencies": [
+        "task2",
+        "task3"
+      ],
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.63432+08:00"
+    },
+    {
+      "task_id": "task6",
+      "task_name": "编写 sense-ai-loop SKILL.md（主控循环 + plan/doing/learning 子 skill）",
+      "status": "pending",
+      "dependencies": [
+        "task3",
+        "task4",
+        "task5"
+      ],
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.63432+08:00"
+    },
+    {
+      "task_id": "task7",
+      "task_name": "编写 mock_agent.py 和集成测试（自举验证 sense CLI）",
+      "status": "pending",
+      "dependencies": [
+        "task1",
+        "task2",
+        "task3",
+        "task4",
+        "task5"
+      ],
+      "attempts": 0,
+      "created_at": "2026-03-28T00:18:07.63432+08:00",
+      "updated_at": "2026-03-28T00:18:07.63432+08:00"
+    }
+  ]
+}
