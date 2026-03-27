@@ -54,3 +54,32 @@
   {"pass": true, "errors": []}
   ```
 - 结论：✅ 通过
+
+## task3: 实现 prompt 模板系统（plan/doing/learning/review/test prompt 生成）
+
+**分析过程 (Analysis)**:
+- 已有 internal/workspace/workspace.go 提供 GetSenseDir/GetJobPlanDir/GetJobDoingDir
+- 已有 internal/parser/task.go 提供 ParseTaskFile()
+- 测试脚本在 tmpdir 下创建 .sense/{OKR.md,SPEC.md,wiki/,skills/,jobs/job_1/plan/task1.md}
+- 运行 `sense tools gen_prompt plan job_1`，验证生成的 prompt 包含 OKR/SPEC/wiki/skills 内容
+- 运行 `sense tools gen_prompt doing job_1 task1`，验证包含 task 目标和测试方法
+- 运行 `sense tools gen_prompt test job_1 task1`，验证包含测试脚本路径占位符
+- 生成文件输出到 `prompts/` 目录
+
+**实现步骤 (Implementation)**:
+1. 创建 internal/prompt/context.go：LoadContext() 读取 OKR.md、SPEC.md、wiki/、skills/；WikiContent()/SkillsContent() 拼接内容
+2. 创建 internal/prompt/templates/{plan,doing,test,review,learning}.md：Markdown 模板，使用 {{variable}} 占位符
+3. 创建 internal/prompt/builder.go：使用 //go:embed 嵌入模板文件；Build() 进行字符串替换
+4. 创建 internal/cmd/tools.go：tools 父命令 + gen_prompt 子命令，加载上下文、解析 task 文件、渲染模板、写入 prompts/ 目录
+5. `go build -o bin/sense ./cmd/sense/...` 编译成功
+
+**遇到的问题 (Issues)**:
+- 无
+
+**验证结果 (Verification)**:
+- 测试命令：`python3 .rick/jobs/job_1/doing/tests/task3.py`
+- 测试输出：
+  ```
+  {"pass": true, "errors": []}
+  ```
+- 结论：✅ 通过
