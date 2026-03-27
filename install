@@ -83,12 +83,13 @@ install_skills() {
   echo ""
   echo "在 Claude Code 中使用技能："
   echo "  • sense-human-loop：开始 SENSE 深度思考循环"
-  echo "  • sense-doc-writer：用 SENSE 方法写作文档"
+  echo "  • sense-ai-loop：驱动 AI 自动完成软件开发（plan → doing → learning）"
   echo ""
   echo "触发方式：在对话中直接描述需求，Claude 会自动识别并使用对应技能。"
   echo "例如："
   echo "  「帮我用 SENSE 分析这个问题：……」"
-  echo "  「把这些想法整理成一份需求文档」"
+  echo "  「用 sense 实现这个需求」"
+  echo "  「sense loop」"
 }
 
 remove_skills() {

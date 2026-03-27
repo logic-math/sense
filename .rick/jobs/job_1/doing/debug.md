@@ -139,3 +139,30 @@
   {"pass": true, "errors": []}
   ```
 - 结论：✅ 通过
+
+## task6: 编写 sense-ai-loop SKILL.md（主控循环 + plan/doing/learning 子 skill）
+
+**分析过程 (Analysis)**:
+- 阅读了 sense-ai-loop-design.md，理解了三阶段循环（plan → doing → learning）的完整设计
+- 阅读了 skills/sense-human-loop/SKILL.md 作为 skill 格式参考
+- 阅读了 internal/prompt/templates/ 下的所有模板，理解了 sense CLI 的命令体系
+- 阅读了 install 脚本，了解 skill 注册机制（自动扫描 skills/*/SKILL.md，无需手动注册）
+
+**实现步骤 (Implementation)**:
+1. 创建 skills/sense-ai-loop/ 目录和 skills/sense-ai-loop/skills/ 子目录
+2. 创建 skills/sense-ai-loop/SKILL.md：主控 skill，含触发条件、三阶段流程、doing 主循环伪代码、上下文恢复机制、失败处理策略
+3. 创建 skills/sense-ai-loop/skills/plan.md：plan sub-agent 规则，含输入规范、task*.md 格式要求、解析 sense-express 文档的映射规则
+4. 创建 skills/sense-ai-loop/skills/doing.md：doing sub-agent 规则，含输入规范、五步执行流程（分析→实现→测试→工作日志→提交）
+5. 创建 skills/sense-ai-loop/skills/learning.md：learning sub-agent 规则，含三个产出（README.md + wiki + skills）的详细规范
+6. 更新 install 脚本帮助信息，添加 sense-ai-loop 说明
+
+**遇到的问题 (Issues)**:
+- 无
+
+**验证结果 (Verification)**:
+- 测试命令：`python3 .rick/jobs/job_1/doing/tests/task6.py`
+- 测试输出：
+  ```
+  {"pass": true, "errors": []}
+  ```
+- 结论：✅ 通过
