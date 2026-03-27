@@ -27,3 +27,30 @@
   {"pass": true, "errors": []}
   ```
 - 结论：✅ 通过
+
+## task2: 实现 DAG 调度核心（dag + topological + tasks_json）
+
+**分析过程 (Analysis)**:
+- 已有 internal/parser/task.go 提供 ParseTaskFile()，返回含 Dependencies、Name 等字段的 Task 结构
+- 已有 internal/workspace/workspace.go 提供 GetJobPlanDir/GetJobDoingDir，接受项目根目录
+- 测试脚本在 tmpdir 下创建 .sense/jobs/job_1/plan/*.md，运行 `sense doing dag job_1`，cwd=tmpdir
+- 需要新建 internal/executor/ 包：dag.go、topological.go、tasks_json.go
+- 需要新建 internal/cmd/doing.go 注册 doing dag 和 doing next_task 子命令
+
+**实现步骤 (Implementation)**:
+1. 创建 internal/executor/dag.go：定义 Node、DAG、TaskEntry 结构体，BuildDAG() 验证依赖存在并检测循环
+2. 创建 internal/executor/topological.go：Kahn 算法拓扑排序，循环依赖时返回 error
+3. 创建 internal/executor/tasks_json.go：TasksJSON/TaskRecord 结构体，Load/Save/NewTasksJSON/UpdateStatus/UpdateCommit/NextTask 方法
+4. 创建 internal/cmd/doing.go：doing 父命令 + dag 子命令（读 plan/*.md → BuildDAG → TopologicalSort → NewTasksJSON → Save）+ next_task 子命令（Load → NextTask → 输出 task_id 或 NONE）
+5. `go build -o bin/sense ./cmd/sense/...` 编译成功
+
+**遇到的问题 (Issues)**:
+- 无
+
+**验证结果 (Verification)**:
+- 测试命令：`python3 .rick/jobs/job_1/doing/tests/task2.py`
+- 测试输出：
+  ```
+  {"pass": true, "errors": []}
+  ```
+- 结论：✅ 通过
