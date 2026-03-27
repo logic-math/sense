@@ -166,3 +166,40 @@
   {"pass": true, "errors": []}
   ```
 - 结论：✅ 通过
+
+## task7: 编写 mock_agent.py 和集成测试（自举验证 sense CLI）
+
+**分析过程 (Analysis)**:
+- 阅读了 task7.py 测试脚本，理解了7个测试要求：mock_agent.py 存在 + --self-test 通过、integration_test.sh 存在 + 退出码0 + 覆盖 dag/next_task/NONE、plan_check 对缺失 section 返回 FAIL、doing_check 对 zombie task 返回 FAIL 并支持自动恢复
+- 阅读了 internal/parser/task.go，发现依赖关系行直接存储原始文本（不去掉 "- " 前缀），因此 plan 文件的依赖关系必须直接写 taskID 而不是 "- taskID"
+- 阅读了 internal/cmd/tools.go，确认 doing_check 对任何 status=running 的任务都报告 zombie，plan_check 检查五个必要 section
+- 阅读了 internal/workspace/workspace.go，确认路径格式：.sense/jobs/{jobID}/plan、doing、learning
+
+**实现步骤 (Implementation)**:
+1. 创建 tests/mock_agent/mock_agent.py：7 个场景（plan_success/missing_section/circular_dep/doing_success/test_success/test_fail/learning_success），通过 MOCK_SCENARIO 环境变量切换，支持 --self-test 模式
+2. 创建 tests/integration_test.sh：10 个端到端测试，覆盖 sense init → doing dag → next_task 调度循环（task1→task2→NONE）→ plan_check PASS/FAIL → doing_check zombie 检测和自动恢复 → learning merge
+3. 创建 scripts/build.sh：编译 sense 到 bin/sense
+
+**遇到的问题 (Issues)**:
+- 依赖格式问题：初始实现中 plan 文件依赖写成 "- task1"，但 parser 直接存储原始行，导致 DAG 报错 "depends on unknown task '- task1'"。修复：改为直接写 "task1"（与项目现有 plan 文件格式一致）
+- integration_test.sh 中 SENSE_BIN 路径问题：初始用 `$(dirname "$0")/../bin/sense` 是相对路径，cd 到 tmpdir 后失效。修复：改为 `$(cd "$(dirname "$0")/.." && pwd)/bin/sense` 绝对路径
+
+**验证结果 (Verification)**:
+- 测试命令：`python3 tests/mock_agent/mock_agent.py --self-test && bash tests/integration_test.sh && python3 .rick/jobs/job_1/doing/tests/task7.py`
+- 测试输出：
+  ```
+  OK: all self-tests passed
+  PASS: sense init creates .sense directory structure
+  PASS: sense doing dag generates tasks.json
+  PASS: sense doing next_task returns task1 first
+  PASS: sense doing next_task returns task2 after task1 completes
+  PASS: sense doing next_task returns NONE when all tasks done
+  PASS: sense tools plan_check PASS for valid plan
+  PASS: sense tools plan_check FAIL for plan_missing_section
+  PASS: sense tools doing_check FAIL for zombie task
+  PASS: sense tools doing_check PASS after zombie reset to pending
+  PASS: sense learning merge copies wiki and skills files
+  Results: 10 passed, 0 failed
+  {"pass": true, "errors": []}
+  ```
+- 结论：✅ 通过
