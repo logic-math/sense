@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install — 将 sense 技能包安装到 Claude Code
+# install — 将 sense 技能包安装到 Claude Code 和 OpenClaw
 # 用法：./install [选项]
 #   --list     列出所有可安装的技能
 #   --remove   卸载已安装的技能
@@ -10,6 +10,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
+OPENCLAW_SKILLS_DIR="$HOME/.openclaw/workspace/skills"
 
 # 颜色输出
 GREEN='\033[0;32m'
@@ -26,12 +27,14 @@ usage() {
 sense 技能包安装脚本
 
 用法：
-  ./install           安装所有技能到 Claude Code
+  ./install           安装所有技能到 Claude Code 和 OpenClaw
   ./install --list    列出所有可安装的技能
   ./install --remove  卸载已安装的技能
   ./install --help    显示此帮助信息
 
-技能安装位置：$CLAUDE_SKILLS_DIR
+技能安装位置：
+  Claude Code: $CLAUDE_SKILLS_DIR
+  OpenClaw:    $OPENCLAW_SKILLS_DIR
 EOF
 }
 
@@ -57,35 +60,50 @@ install_skills() {
 
   # 确保目标目录存在
   mkdir -p "$CLAUDE_SKILLS_DIR"
+  mkdir -p "$OPENCLAW_SKILLS_DIR"
 
-  installed=0
+  installed_claude=0
+  installed_openclaw=0
   skipped=0
 
   for skill_dir in "$SKILLS_DIR"/*/; do
     if [ -f "$skill_dir/SKILL.md" ]; then
       skill_name=$(basename "$skill_dir")
-      target="$CLAUDE_SKILLS_DIR/$skill_name"
+      target_claude="$CLAUDE_SKILLS_DIR/$skill_name"
+      target_openclaw="$OPENCLAW_SKILLS_DIR/$skill_name"
 
-      if [ -d "$target" ]; then
-        warn "已存在，跳过：$skill_name（如需更新请先运行 ./install --remove）"
+      # 安装到 Claude Code
+      if [ -d "$target_claude" ]; then
+        warn "Claude Code 已存在，跳过：$skill_name"
         skipped=$((skipped + 1))
       else
-        # 创建软链接（方便后续更新）
-        ln -s "$skill_dir" "$target"
-        info "已安装：$skill_name"
-        installed=$((installed + 1))
+        ln -s "$skill_dir" "$target_claude"
+        info "Claude Code 已安装：$skill_name"
+        installed_claude=$((installed_claude + 1))
+      fi
+
+      # 安装到 OpenClaw
+      if [ -d "$target_openclaw" ]; then
+        warn "OpenClaw 已存在，跳过：$skill_name"
+      else
+        ln -s "$skill_dir" "$target_openclaw"
+        info "OpenClaw 已安装：$skill_name"
+        installed_openclaw=$((installed_openclaw + 1))
       fi
     fi
   done
 
   echo ""
-  echo "完成！安装了 $installed 个技能，跳过 $skipped 个（已存在）。"
+  echo "完成！"
+  echo "  Claude Code: 安装了 $installed_claude 个技能"
+  echo "  OpenClaw:    安装了 $installed_openclaw 个技能"
+  echo "  跳过: $skipped 个（已存在）"
   echo ""
-  echo "在 Claude Code 中使用技能："
+  echo "在 Claude Code / OpenClaw 中使用技能："
   echo "  • sense-human-loop：开始 SENSE 深度思考循环"
   echo "  • sense-ai-loop：驱动 AI 自动完成软件开发（plan → doing → learning）"
   echo ""
-  echo "触发方式：在对话中直接描述需求，Claude 会自动识别并使用对应技能。"
+  echo "触发方式：在对话中直接描述需求，AI 会自动识别并使用对应技能。"
   echo "例如："
   echo "  「帮我用 SENSE 分析这个问题：……」"
   echo "  「用 sense 实现这个需求」"
@@ -96,28 +114,42 @@ remove_skills() {
   echo "正在卸载 sense 技能包..."
   echo ""
 
-  removed=0
+  removed_claude=0
+  removed_openclaw=0
 
   for skill_dir in "$SKILLS_DIR"/*/; do
     if [ -f "$skill_dir/SKILL.md" ]; then
       skill_name=$(basename "$skill_dir")
-      target="$CLAUDE_SKILLS_DIR/$skill_name"
+      target_claude="$CLAUDE_SKILLS_DIR/$skill_name"
+      target_openclaw="$OPENCLAW_SKILLS_DIR/$skill_name"
 
-      if [ -L "$target" ]; then
-        rm "$target"
-        info "已卸载：$skill_name"
-        removed=$((removed + 1))
-      elif [ -d "$target" ]; then
-        warn "跳过（非软链接，请手动删除）：$target"
+      # 卸载 Claude Code
+      if [ -L "$target_claude" ]; then
+        rm "$target_claude"
+        info "Claude Code 已卸载：$skill_name"
+        removed_claude=$((removed_claude + 1))
+      elif [ -d "$target_claude" ]; then
+        warn "Claude Code 跳过（非软链接，请手动删除）：$target_claude"
+      fi
+
+      # 卸载 OpenClaw
+      if [ -L "$target_openclaw" ]; then
+        rm "$target_openclaw"
+        info "OpenClaw 已卸载：$skill_name"
+        removed_openclaw=$((removed_openclaw + 1))
+      elif [ -d "$target_openclaw" ]; then
+        warn "OpenClaw 跳过（非软链接，请手动删除）：$target_openclaw"
       fi
     fi
   done
 
-  if [ $removed -eq 0 ]; then
+  if [ $removed_claude -eq 0 ] && [ $removed_openclaw -eq 0 ]; then
     warn "没有找到已安装的 sense 技能。"
   else
     echo ""
-    echo "完成！已卸载 $removed 个技能。"
+    echo "完成！"
+    echo "  Claude Code: 已卸载 $removed_claude 个技能"
+    echo "  OpenClaw:    已卸载 $removed_openclaw 个技能"
   fi
 }
 
