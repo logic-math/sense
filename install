@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install — 将 sense 技能包安装到 Claude Code 和 OpenClaw
+# install — 将 sense 技能包安装到 Claude Code 和 OpenClaw，并将 sense CLI 安装到 PATH
 # 用法：./install [选项]
 #   --list     列出所有可安装的技能
 #   --remove   卸载已安装的技能
@@ -11,6 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
 OPENCLAW_SKILLS_DIR="$HOME/.openclaw/workspace/skills"
+BIN_SOURCE="$SCRIPT_DIR/bin/sense"
+BIN_TARGET="$HOME/.local/bin/sense"
 
 # 颜色输出
 GREEN='\033[0;32m'
@@ -35,6 +37,7 @@ sense 技能包安装脚本
 技能安装位置：
   Claude Code: $CLAUDE_SKILLS_DIR
   OpenClaw:    $OPENCLAW_SKILLS_DIR
+CLI 安装位置：$BIN_TARGET
 EOF
 }
 
@@ -52,6 +55,30 @@ list_skills() {
       fi
     fi
   done
+}
+
+install_cli() {
+  echo "正在安装 sense CLI..."
+
+  if [ ! -f "$BIN_SOURCE" ]; then
+    warn "未找到 bin/sense，跳过 CLI 安装（可运行 go build -o bin/sense ./cmd/sense 编译）"
+    return
+  fi
+
+  mkdir -p "$(dirname "$BIN_TARGET")"
+
+  if [ -L "$BIN_TARGET" ]; then
+    rm "$BIN_TARGET"
+  fi
+
+  ln -s "$BIN_SOURCE" "$BIN_TARGET"
+  info "CLI 已安装：$BIN_TARGET -> $BIN_SOURCE"
+
+  # 检查 ~/.local/bin 是否在 PATH 中
+  if ! echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
+    warn "~/.local/bin 不在 PATH 中，请在 shell 配置文件（~/.zshrc 或 ~/.bashrc）中添加："
+    echo "       export PATH=\"\$HOME/.local/bin:\$PATH\""
+  fi
 }
 
 install_skills() {
@@ -99,6 +126,10 @@ install_skills() {
   echo "  OpenClaw:    安装了 $installed_openclaw 个技能"
   echo "  跳过: $skipped 个（已存在）"
   echo ""
+
+  install_cli
+
+  echo ""
   echo "在 Claude Code / OpenClaw 中使用技能："
   echo "  • sense-human-loop：开始 SENSE 深度思考循环"
   echo "  • sense-ai-loop：驱动 AI 自动完成软件开发（plan → doing → learning）"
@@ -142,6 +173,12 @@ remove_skills() {
       fi
     fi
   done
+
+  # 卸载 CLI
+  if [ -L "$BIN_TARGET" ]; then
+    rm "$BIN_TARGET"
+    info "CLI 已卸载：$BIN_TARGET"
+  fi
 
   if [ $removed_claude -eq 0 ] && [ $removed_openclaw -eq 0 ]; then
     warn "没有找到已安装的 sense 技能。"
