@@ -44,15 +44,21 @@ func ParseTaskFile(path string) (*Task, error) {
 
 	task := &Task{}
 
-	// 依赖关系
+	// 依赖关系：支持逗号分隔（同行）和换行分隔两种格式
 	depLines := trimLines(sections["依赖关系"])
 	for _, l := range depLines {
+		if l == "" {
+			continue
+		}
 		if l == "（无）" || l == "(无)" {
-			// no dependencies
 			break
 		}
-		if l != "" {
-			task.Dependencies = append(task.Dependencies, l)
+		// 按逗号拆分，支持 "task1, task2" 和 "task1" 两种写法
+		for _, token := range strings.Split(l, ",") {
+			token = strings.TrimSpace(token)
+			if token != "" {
+				task.Dependencies = append(task.Dependencies, token)
+			}
 		}
 	}
 

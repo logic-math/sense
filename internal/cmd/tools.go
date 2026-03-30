@@ -95,13 +95,18 @@ var genPromptCmd = &cobra.Command{
 			vars["git_diff"] = "{{git_diff}}"
 		}
 
+		// For learning phase, inject job_summary from tasks.json + debug.md
+		if phase == "learning" {
+			vars["job_summary"] = buildJobSummary(cwd, jobID)
+		}
+
 		content, err := prompt.Build(phase, vars)
 		if err != nil {
 			return fmt.Errorf("build prompt: %w", err)
 		}
 
-		// Write to prompts/ directory
-		promptsDir := filepath.Join(cwd, "prompts")
+		// Write to .sense/jobs/{job_id}/prompts/ directory
+		promptsDir := workspace.GetJobPromptsDir(cwd, jobID)
 		if err := os.MkdirAll(promptsDir, 0755); err != nil {
 			return fmt.Errorf("create prompts dir: %w", err)
 		}
@@ -121,6 +126,31 @@ var genPromptCmd = &cobra.Command{
 		fmt.Printf("Generated prompt: %s\n", outPath)
 		return nil
 	},
+}
+
+// buildJobSummary reads tasks.json and debug.md for a job and returns a summary string.
+func buildJobSummary(root, jobID string) string {
+	var sb strings.Builder
+
+	doingDir := workspace.GetJobDoingDir(root, jobID)
+
+	// tasks.json summary
+	tasksPath := filepath.Join(doingDir, "tasks.json")
+	if data, err := os.ReadFile(tasksPath); err == nil {
+		sb.WriteString("## tasks.json\n\n```json\n")
+		sb.Write(data)
+		sb.WriteString("\n```\n\n")
+	}
+
+	// debug.md (optional)
+	debugPath := filepath.Join(doingDir, "debug.md")
+	if data, err := os.ReadFile(debugPath); err == nil {
+		sb.WriteString("## debug.md\n\n")
+		sb.Write(data)
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
 }
 
 var planCheckCmd = &cobra.Command{
@@ -266,18 +296,19 @@ var learningCheckCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		jobDir := filepath.Join(workspace.GetSenseDir(cwd), "jobs", jobID)
 		learningDir := workspace.GetJobLearningDir(cwd, jobID)
 
 		res := &checkResult{Pass: true, Errors: []string{}}
 
-		// Check README.md exists
-		readmePath := filepath.Join(learningDir, "README.md")
+		// Check README.md exists at job root (not inside learning/)
+		readmePath := filepath.Join(jobDir, "README.md")
 		if _, err := os.Stat(readmePath); os.IsNotExist(err) {
 			res.Pass = false
-			res.Errors = append(res.Errors, "learning/README.md not found")
+			res.Errors = append(res.Errors, fmt.Sprintf("%s not found", readmePath))
 		}
 
-		// Check Python files in skills/ for syntax errors
+		// Check Python files in learning/skills/ for syntax errors
 		skillsDir := filepath.Join(learningDir, "skills")
 		entries, err := os.ReadDir(skillsDir)
 		if err != nil && !os.IsNotExist(err) {

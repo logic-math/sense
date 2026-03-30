@@ -90,7 +90,7 @@ loop:
   # 提交
   git add -A
   git commit -m "feat({task_id}): {task_name}"
-  sense doing update_task {job_id} {task_id} --status success --commit $(git rev-parse HEAD)
+  sense doing update_task {job_id} {task_id} success --commit $(git rev-parse HEAD)
 ```
 
 #### 2.3 Doing 完成检查

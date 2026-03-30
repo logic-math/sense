@@ -93,6 +93,11 @@ func GetJobLearningDir(root, jobID string) string {
 	return filepath.Join(root, senseDirName, "jobs", jobID, "learning")
 }
 
+// GetJobPromptsDir returns the prompts directory path for a given job.
+func GetJobPromptsDir(root, jobID string) string {
+	return filepath.Join(root, senseDirName, "jobs", jobID, "prompts")
+}
+
 // ListJobIDs returns sorted job IDs under <root>/.sense/jobs/.
 func ListJobIDs(root string) ([]string, error) {
 	jobsDir := filepath.Join(root, senseDirName, "jobs")
