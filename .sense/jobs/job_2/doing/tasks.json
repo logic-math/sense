@@ -1,0 +1,67 @@
+{
+  "version": "1.0",
+  "created_at": "2026-03-30T10:00:00+08:00",
+  "updated_at": "2026-03-30T18:30:37.626353718+08:00",
+  "tasks": [
+    {
+      "task_id": "task1",
+      "task_name": "修复 parser 不支持逗号分隔依赖的 Bug",
+      "task_file": "task1.md",
+      "status": "success",
+      "dependencies": null,
+      "attempts": 0,
+      "commit_hash": "a54d19d81953c5806fee17e330c3af06fce2666b",
+      "created_at": "2026-03-30T10:00:00+08:00",
+      "updated_at": "2026-03-30T18:25:52.419999277+08:00"
+    },
+    {
+      "task_id": "task2",
+      "task_name": "修复 update_task 命令签名与 SKILL.md 不一致的 Bug",
+      "task_file": "task2.md",
+      "status": "success",
+      "dependencies": null,
+      "attempts": 0,
+      "commit_hash": "a54d19d81953c5806fee17e330c3af06fce2666b",
+      "created_at": "2026-03-30T10:00:00+08:00",
+      "updated_at": "2026-03-30T18:25:52.496251745+08:00"
+    },
+    {
+      "task_id": "task3",
+      "task_name": "修复 learning prompt 缺少 job_summary 变量注入",
+      "task_file": "task3.md",
+      "status": "success",
+      "dependencies": null,
+      "attempts": 0,
+      "commit_hash": "a54d19d81953c5806fee17e330c3af06fce2666b",
+      "created_at": "2026-03-30T10:00:00+08:00",
+      "updated_at": "2026-03-30T18:25:52.634754803+08:00"
+    },
+    {
+      "task_id": "task4",
+      "task_name": "修复 gen_prompt 输出路径和 learning_check 路径不符合设计规范",
+      "task_file": "task4.md",
+      "status": "success",
+      "dependencies": null,
+      "attempts": 0,
+      "commit_hash": "a54d19d81953c5806fee17e330c3af06fce2666b",
+      "created_at": "2026-03-30T10:00:00+08:00",
+      "updated_at": "2026-03-30T18:25:52.71114855+08:00"
+    },
+    {
+      "task_id": "task5",
+      "task_name": "集成验证：更新 mock_agent.py 和 integration_test.sh 覆盖所有 Bug 修复",
+      "task_file": "task5.md",
+      "status": "success",
+      "dependencies": [
+        "task1",
+        "task2",
+        "task3",
+        "task4"
+      ],
+      "attempts": 0,
+      "commit_hash": "c407258615a7623cdac279ef5a3e962b20e68ed8",
+      "created_at": "2026-03-30T10:00:00+08:00",
+      "updated_at": "2026-03-30T18:30:37.626353288+08:00"
+    }
+  ]
+}
