@@ -224,6 +224,207 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Test 7: parser 支持逗号分隔依赖（plan_comma_deps 场景）
+# ---------------------------------------------------------------------------
+TMPDIR7=$(mktemp -d)
+trap 'rm -rf "$TMPDIR7" "$TMPDIR6" "$TMPDIR5" "$TMPDIR4" "$TMPDIR3" "$TMPDIR2" "$TMPDIR1"' EXIT
+
+cd "$TMPDIR7"
+"$SENSE_BIN" init > /dev/null 2>&1
+mkdir -p .sense/jobs/job_1/plan
+
+MOCK_COMMA_DIR=$(mktemp -d)
+MOCK_SCENARIO=plan_comma_deps python3 "$MOCK_AGENT" "$MOCK_COMMA_DIR" > /dev/null 2>&1
+cp "$MOCK_COMMA_DIR"/*.md .sense/jobs/job_1/plan/
+rm -rf "$MOCK_COMMA_DIR"
+
+if "$SENSE_BIN" doing dag job_1 > /dev/null 2>&1; then
+    # Verify task3 has deps [task1, task2] in tasks.json
+    DEPS=$(python3 -c "
+import json, sys
+with open('.sense/jobs/job_1/doing/tasks.json') as f:
+    tj = json.load(f)
+t3 = next((t for t in tj['tasks'] if t['task_id'] == 'task3'), None)
+if t3 and t3['dependencies'] == ['task1', 'task2']:
+    print('ok')
+else:
+    print('fail: ' + str(t3))
+" 2>/dev/null)
+    if [ "$DEPS" = "ok" ]; then
+        pass "parser handles comma-separated deps (task1, task2)"
+    else
+        fail "parser comma deps: task3 deps wrong: $DEPS"
+    fi
+else
+    fail "doing dag failed with comma-separated deps"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8: update_task 位置参数形式（无 --status flag）
+# ---------------------------------------------------------------------------
+TMPDIR8=$(mktemp -d)
+trap 'rm -rf "$TMPDIR8" "$TMPDIR7" "$TMPDIR6" "$TMPDIR5" "$TMPDIR4" "$TMPDIR3" "$TMPDIR2" "$TMPDIR1"' EXIT
+
+cd "$TMPDIR8"
+"$SENSE_BIN" init > /dev/null 2>&1
+mkdir -p .sense/jobs/job_1/plan
+
+cp "$TMPDIR7"/.sense/jobs/job_1/plan/*.md .sense/jobs/job_1/plan/ 2>/dev/null || true
+# Use a simple single-task plan
+cat > .sense/jobs/job_1/plan/task1.md << 'EOF'
+# 依赖关系
+（无）
+
+# 任务名称
+测试任务
+
+# 任务目标
+目标
+
+# 关键结果
+1. 结果
+
+# 测试方法
+1. 测试
+EOF
+"$SENSE_BIN" doing dag job_1 > /dev/null 2>&1
+
+if "$SENSE_BIN" doing update_task job_1 task1 success --commit abc1234 > /dev/null 2>&1; then
+    STATUS=$(python3 -c "
+import json
+with open('.sense/jobs/job_1/doing/tasks.json') as f:
+    tj = json.load(f)
+t = tj['tasks'][0]
+print(t['status'] + '/' + t['commit_hash'])
+" 2>/dev/null)
+    if [ "$STATUS" = "success/abc1234" ]; then
+        pass "update_task positional args with --commit works"
+    else
+        fail "update_task: wrong status/commit: $STATUS"
+    fi
+else
+    fail "update_task positional form failed"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 9: gen_prompt 输出到 .sense/jobs/{job_id}/prompts/
+# ---------------------------------------------------------------------------
+TMPDIR9=$(mktemp -d)
+trap 'rm -rf "$TMPDIR9" "$TMPDIR8" "$TMPDIR7" "$TMPDIR6" "$TMPDIR5" "$TMPDIR4" "$TMPDIR3" "$TMPDIR2" "$TMPDIR1"' EXIT
+
+cd "$TMPDIR9"
+"$SENSE_BIN" init > /dev/null 2>&1
+mkdir -p .sense/jobs/job_1/plan
+
+cat > .sense/jobs/job_1/plan/task1.md << 'EOF'
+# 依赖关系
+（无）
+
+# 任务名称
+测试任务
+
+# 任务目标
+目标
+
+# 关键结果
+1. 结果
+
+# 测试方法
+1. 测试
+EOF
+
+"$SENSE_BIN" tools gen_prompt plan job_1 > /dev/null 2>&1
+if [ -f ".sense/jobs/job_1/prompts/plan_job_1.md" ]; then
+    pass "gen_prompt outputs to .sense/jobs/{job_id}/prompts/"
+else
+    fail "gen_prompt: prompt not at .sense/jobs/job_1/prompts/plan_job_1.md"
+fi
+# Old path should NOT exist
+if [ -d "prompts" ]; then
+    fail "gen_prompt: old prompts/ dir at cwd root should not exist"
+else
+    pass "gen_prompt: no stray prompts/ dir at cwd root"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: gen_prompt learning 不含 {{job_summary}} 字面量
+# ---------------------------------------------------------------------------
+TMPDIR10=$(mktemp -d)
+trap 'rm -rf "$TMPDIR10" "$TMPDIR9" "$TMPDIR8" "$TMPDIR7" "$TMPDIR6" "$TMPDIR5" "$TMPDIR4" "$TMPDIR3" "$TMPDIR2" "$TMPDIR1"' EXIT
+
+cd "$TMPDIR10"
+"$SENSE_BIN" init > /dev/null 2>&1
+mkdir -p .sense/jobs/job_1/doing
+
+cat > .sense/jobs/job_1/doing/tasks.json << 'EOF'
+{
+  "version": "1.0",
+  "created_at": "2026-03-30T00:00:00Z",
+  "updated_at": "2026-03-30T00:00:00Z",
+  "tasks": [
+    {
+      "task_id": "task1",
+      "task_name": "实现功能",
+      "task_file": "task1.md",
+      "status": "success",
+      "dependencies": null,
+      "attempts": 0,
+      "commit_hash": "abc1234",
+      "created_at": "2026-03-30T00:00:00Z",
+      "updated_at": "2026-03-30T00:00:00Z"
+    }
+  ]
+}
+EOF
+
+"$SENSE_BIN" tools gen_prompt learning job_1 > /dev/null 2>&1
+PROMPT_FILE=".sense/jobs/job_1/prompts/learning_job_1.md"
+if [ -f "$PROMPT_FILE" ]; then
+    if grep -q '{{job_summary}}' "$PROMPT_FILE"; then
+        fail "gen_prompt learning: {{job_summary}} literal still in prompt"
+    else
+        pass "gen_prompt learning: {{job_summary}} is replaced"
+    fi
+    if grep -q 'abc1234' "$PROMPT_FILE"; then
+        pass "gen_prompt learning: tasks.json content injected into prompt"
+    else
+        fail "gen_prompt learning: tasks.json content not found in prompt"
+    fi
+else
+    fail "gen_prompt learning: prompt file not created"
+fi
+
+# ---------------------------------------------------------------------------
+# Test 11: learning_check PASS when README.md at job root
+# ---------------------------------------------------------------------------
+TMPDIR11=$(mktemp -d)
+trap 'rm -rf "$TMPDIR11" "$TMPDIR10" "$TMPDIR9" "$TMPDIR8" "$TMPDIR7" "$TMPDIR6" "$TMPDIR5" "$TMPDIR4" "$TMPDIR3" "$TMPDIR2" "$TMPDIR1"' EXIT
+
+cd "$TMPDIR11"
+"$SENSE_BIN" init > /dev/null 2>&1
+
+# Use learning_readme mock scenario: README.md at job root
+MOCK_JOB_DIR=$(mktemp -d)
+MOCK_SCENARIO=learning_readme python3 "$MOCK_AGENT" "$MOCK_JOB_DIR" > /dev/null 2>&1
+mkdir -p .sense/jobs/job_1
+cp -r "$MOCK_JOB_DIR"/. .sense/jobs/job_1/
+rm -rf "$MOCK_JOB_DIR"
+
+if "$SENSE_BIN" tools learning_check job_1 > /dev/null 2>&1; then
+    pass "learning_check PASS when README.md is at job root"
+else
+    fail "learning_check: should PASS with README.md at job root"
+fi
+
+# Without README.md at job root → FAIL
+rm -f .sense/jobs/job_1/README.md
+if ! "$SENSE_BIN" tools learning_check job_1 > /dev/null 2>&1; then
+    pass "learning_check FAIL when README.md missing from job root"
+else
+    fail "learning_check: should FAIL without README.md at job root"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""

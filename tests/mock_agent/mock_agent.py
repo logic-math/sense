@@ -161,6 +161,63 @@ sys.exit(1)
         f.write(content)
 
 
+def scenario_plan_comma_deps(target_dir):
+    """Create task1.md, task2.md, task3.md where task3 uses comma-separated deps."""
+    os.makedirs(target_dir, exist_ok=True)
+
+    task1 = VALID_TASK_TEMPLATE.format(
+        deps="（无）",
+        name="任务一",
+        goal="目标一",
+        kr="结果一",
+        task_id="task1",
+    )
+    with open(os.path.join(target_dir, "task1.md"), "w") as f:
+        f.write(task1)
+
+    task2 = VALID_TASK_TEMPLATE.format(
+        deps="（无）",
+        name="任务二",
+        goal="目标二",
+        kr="结果二",
+        task_id="task2",
+    )
+    with open(os.path.join(target_dir, "task2.md"), "w") as f:
+        f.write(task2)
+
+    task3 = VALID_TASK_TEMPLATE.format(
+        deps="task1, task2",
+        name="任务三（逗号依赖）",
+        goal="目标三",
+        kr="结果三",
+        task_id="task3",
+    )
+    with open(os.path.join(target_dir, "task3.md"), "w") as f:
+        f.write(task3)
+
+
+def scenario_learning_readme(target_dir):
+    """Create README.md at job root (not in learning/ subdir) + learning/wiki + learning/skills."""
+    # target_dir is the job root (.sense/jobs/job_1/)
+    os.makedirs(target_dir, exist_ok=True)
+    learning_dir = os.path.join(target_dir, "learning")
+    os.makedirs(os.path.join(learning_dir, "wiki"), exist_ok=True)
+    os.makedirs(os.path.join(learning_dir, "skills"), exist_ok=True)
+
+    # README.md goes at job root, not inside learning/
+    readme = "# Job Summary\n\n本次迭代完成了核心功能实现。\n"
+    with open(os.path.join(target_dir, "README.md"), "w") as f:
+        f.write(readme)
+
+    arch = "# 架构说明\n\n模块化设计。\n"
+    with open(os.path.join(learning_dir, "wiki", "arch.md"), "w") as f:
+        f.write(arch)
+
+    check_skill = '#!/usr/bin/env python3\n"""check skill"""\nprint("ok")\n'
+    with open(os.path.join(learning_dir, "skills", "check.py"), "w") as f:
+        f.write(check_skill)
+
+
 def scenario_learning_success(target_dir):
     """Create README.md, wiki/arch.md, skills/check.py in target_dir (learning dir)."""
     os.makedirs(target_dir, exist_ok=True)
@@ -229,10 +286,12 @@ SCENARIOS = {
     "plan_success": scenario_plan_success,
     "plan_missing_section": scenario_plan_missing_section,
     "plan_circular_dep": scenario_plan_circular_dep,
+    "plan_comma_deps": scenario_plan_comma_deps,
     "doing_success": scenario_doing_success,
     "test_success": scenario_test_success,
     "test_fail": scenario_test_fail,
     "learning_success": scenario_learning_success,
+    "learning_readme": scenario_learning_readme,
 }
 
 
@@ -353,6 +412,30 @@ def self_test():
             )
             if result.returncode != 0:
                 errors.append(f"learning_success: check.py syntax error: {result.stderr}")
+
+        # Test plan_comma_deps
+        d = os.path.join(tmpdir, "plan_comma_deps")
+        scenario_plan_comma_deps(d)
+        for fname in ["task1.md", "task2.md", "task3.md"]:
+            if not os.path.exists(os.path.join(d, fname)):
+                errors.append(f"plan_comma_deps: missing {fname}")
+        c3 = open(os.path.join(d, "task3.md")).read()
+        dep_section = c3.split("# 依赖关系")[1].split("#")[0] if "# 依赖关系" in c3 else ""
+        if "task1" not in dep_section or "task2" not in dep_section:
+            errors.append("plan_comma_deps: task3.md should have task1, task2 in deps section")
+
+        # Test learning_readme
+        d = os.path.join(tmpdir, "learning_readme")
+        scenario_learning_readme(d)
+        # README.md should be at job root, not inside learning/
+        if not os.path.exists(os.path.join(d, "README.md")):
+            errors.append("learning_readme: README.md not at job root")
+        if os.path.exists(os.path.join(d, "learning", "README.md")):
+            errors.append("learning_readme: README.md should NOT be inside learning/ subdir")
+        if not os.path.exists(os.path.join(d, "learning", "wiki", "arch.md")):
+            errors.append("learning_readme: learning/wiki/arch.md not created")
+        if not os.path.exists(os.path.join(d, "learning", "skills", "check.py")):
+            errors.append("learning_readme: learning/skills/check.py not created")
 
     if errors:
         for e in errors:
